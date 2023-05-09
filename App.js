@@ -1,11 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import Icon from 'react-native-vector-icons/Fontisto';
-import { Ionicons } from '@expo/vector-icons';
 
-// import { PermissionsAndroid, Platform } from 'react-native';
-
-// import axios from 'axios';
-import { PermissionsAndroid, Platform } from 'react-native';
+import React,{useState, useEffect} from "react"
 import {
   ImageBackground,
   StyleSheet,
@@ -14,227 +8,66 @@ import {
   TextInput,
   SafeAreaView,
 } from 'react-native';
-import { color } from 'react-native-elements/dist/helpers';
+import CurrentWeather from "./scr/components/CurrentWeather";
+import UpcomingWeather from "./scr/components/UpcomingWeather";
 
-// Open weather
-const API_KEY = "9018e2c400ad4157c522b6e3fcbea1ae";
+import * as Location from 'expo-location';
+import { WEATHER_API_KEY } from '@env'
 
-//Today's Date
-const dateBuilder = (d) => {
-  let months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  let days = ["Sun", "Mon", "Tues", "Wed", "Thur", "Fri", "Sat"];
-
-  let day = days[d.getDay()];
-  let date = d.getDate();
-  let month = months[d.getMonth()];
-  let year = d.getFullYear();
-
-  return `${day}, ${month} ${date}, ${year}`
-}
+// api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={API key}
 
 const App = () => {
 
-  //lOCATION AND WEATHER
-  // const [latitude, setLatitude ] = useState('')
-  // const [ longitude, setLongitude ] = useState('')
-  // const [ city, setCity ] = useState('')
-  // const [temp, setTemp ] = useState('')
-  // const [weatherIcon, setWeatherIcon ] = useState('')
+  // const [location, setLocation] = useState(null)
+  const [weather, setWeather] = useState([])
+  const [error, setError] = useState(null)
+  const [lat, setLat] = useState([])
+  const [lon, setLon] = useState([])
 
-
-  // let options = {
-  //   enableHighAccuracy: true,
-  //   timeout: 5000,
-  //   maximumAge: 0
-  // };
-
-  // function success(pos) {
-  //   let crd = pos.coords;
-  //   console.log('Successfully determined a user position:', crd);
-
-  //   setLatitude(crd.latitude);
-  //   setLongitude(crd.longitude);
-
-  // }
-
-  // function error(err) {
-
-  //   console.warn(`ERROR(${err.code}): ${err.message}`);
-  // }
-
-  // navigator.geolocation.getCurrentPosition(success, error, options);
-
-  // useEffect(() => {
-
-  //   navigator.geolocation.getCurrentPosition(async() => {
-
-  //    await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=imperial&appid=${API_KEY}`)
-  //       .then(res => {
-  //         console.log("Getting weather info", res.data)
-  //         console.log("city:", res.data.name, "temp:", res.data.main.temp, "icon:", res.data.weather[0].icon,)
-  //          setCity(res.data.name)
-  //         setTemp(res.data.main.temp)
-  //        setWeatherIcon(res.data.weather[0].icon)
-
-
-
-  //       })
-  //       .catch(err => console.log(err))
-  //   })
-  // });
-
-
-
-  // Current Time
-  const [time, setTime] = useState(new Date());
+  const fetchWeatherData = async () => {
+    try {
+      const res  = await fetch(`http://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}`)
+      const data = await res.json()
+      setWeather(data)
+    } catch (e) {
+      setError('Could Not Fetch Weather Data')
+    } 
+   
+  }  
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTime(new Date());
-    }, 1000);
+    (async() => {
+      let { status } = await Location.requestForegroundPermissionsAsync()
+      if (status !== 'granted') {
+        setError("Location permission was denied.")
+        return
+      }
+      let location = await Location.getCurrentPositionAsync({})
+      setLat(location.coords.latitude)
+      setLon(location.coords.longitude)
+      await fetchWeatherData()
+    })()
+  },[lat, lon] )
 
-    return () => clearInterval(interval);
-  }, []);
+  if (weather) {
+    console.log(weather)
+  }
 
-  return (
-
-    <ImageBackground source={require('./assets/blue-bg.png')} style={styles.image}>
-      <SafeAreaView>
-        <View style={styles.container}>
-
-          <TextInput
-            style={styles.textInput}
-            placeholder="Enter city name..."
-            placeholderTextColor={'#000'}
-          />
-          <View>
-            <Text style={{color: "white"}}>{`${dateBuilder(new Date())}`} {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })} {"\n"}</Text>
-          </View>
-          <Text style={{ color: "white", fontSize: 18 }}>City Name</Text>
-          <View style={styles.mainWrapper}>
-            <Icon name="day-cloudy" size={30} color="orange" />
-            <Text style={styles.tempText}>85°</Text>
-          </View>
-
-          <Text style={{ color: "white" }}>Partly Cloudy</Text>
-
-          <View style={styles.HiLowWrapper}>
-           <Text style={{ color: "white" }}> H: 74°  </Text>
-           <Text style={{ color: "white" }}> L: 51°  </Text>
-          </View>
-
-          <View style={styles.infoWrapper}>
-            <Text style={styles.infoWrapperText}>Feels Like</Text>
-            <Text style={styles.infoWrapperText}>Humidity</Text>
-            <Text style={styles.infoWrapperText}>Rain</Text>
-          </View>
-
-          <View style={styles.forecastWrapper}>
-          <Text style={styles.forecastWrapperDay}>Wed</Text>
-            <View style={{ flexDirection: 'row'}}>
-              
-            <Ionicons name="rainy" size={24} color="black" />
-            <Text style={styles.infoWrapperText}> Light Rain</Text>
-            </View>
-            
-            
-            <Text style={styles.infoWrapperText}>H: 51°  L: 43°</Text>
-          </View>
-          <View style={styles.forecastWrapper}>
-          <Text style={styles.forecastWrapperDay}>Thurs</Text>
-            <View style={{ flexDirection: 'row'}}>
-              
-            <Ionicons name="sunny" size={24} color="black" />
-            <Text style={styles.infoWrapperText}> Light Rain</Text>
-            </View>
-            
-            
-            <Text style={styles.infoWrapperText}>H: 51°  L: 43°</Text>
-          </View>
+return (
+<View style={styles.container}>
+  <CurrentWeather />
+  {/* <UpcomingWeather /> */}
+ 
+</View>
+)
+ 
+}
 
 
-        </View>
-      </SafeAreaView>
-    </ImageBackground>
-  );
-};
-
-const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1
-  },
+const styles = StyleSheet.create ({
   container: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  image: {
-    flex: 1,
-    resizeMode: 'cover',
-    // justifyContent: 'center',
-  },
-  textInput: {
-    marginTop: 70,
-    height: 40,
-    margin: 12,
-    padding: 10,
-    width: '90%',
-    maxWidth: 500,
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    flex: 1
+  }
 
-  },
-  tempText: {
-    fontSize: 60,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    margin: 10,
-  },
-  mainWrapper: {
-    flexDirection: "row",
-    alignItems: 'center',
-  },
-  HiLowWrapper: {
-    flexDirection: "row",
-    alignItems: 'center',
-    justifyContent: "center",
-  },
-  infoWrapper: {
-    opacity: .5,
-    margin: 12,
-    padding: 10,
-    width: '90%',
-    maxWidth: 500,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-    alignItems: 'center',
-   
-  },
-  infoWrapperText: {
-   
-  },
-  forecastWrapperDay: {
-    opacity: 1,
-    fontWeight: "bold",
-    fontSize: 18,
-   
-  },
-
-  forecastWrapper: {
-    opacity: .5,
-    margin: 12,
-    padding: 10,
-    width: '90%',
-    maxWidth: 500,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-    alignItems: 'center',
-    
-  },
-
-});
-
-export default App;
+})
+export default App
